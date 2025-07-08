@@ -1,7 +1,5 @@
 use core::f64;
 
-use rand::random;
-
 const UP: &str = "+";
 const DOWN: &str = "-";
 const J: f64 = 10.0; // Interactivity. J > 0 ferromagnetic. J = 0 non-interactive. J < 0
