@@ -2,13 +2,13 @@ use core::{f64, time};
 use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
 use ratatui::{
     buffer::Buffer,
-    layout::Rect,
+    layout::{Alignment, Layout, Rect},
     style::Stylize,
     symbols::border,
-    text::{Line, Text},
+    text::{Line, Span, Text},
     widgets::{
         canvas::{Canvas, Points},
-        Block, Paragraph, Widget,
+        Block, BorderType, Paragraph, Widget,
     },
     DefaultTerminal, Frame,
 };
@@ -32,7 +32,7 @@ impl App {
     /// Run app until user quit
     pub fn run(&mut self, terminal: &mut DefaultTerminal) -> io::Result<()> {
         // Init lattice and run the app loop
-        self.lattice = Lattice::new(10, J, TEMP);
+        self.lattice = Lattice::new(25, J, TEMP);
         while !self.exit {
             terminal.draw(|frame| self.draw(frame))?;
             self.handle_events()?;
@@ -61,6 +61,8 @@ impl App {
     fn handle_key_event(&mut self, key_event: KeyEvent) {
         match key_event.code {
             KeyCode::Char('q') => self.exit(),
+            KeyCode::Char('i') => self.exit(),
+            KeyCode::Char('t') => self.exit(),
             _ => {}
         }
     }
@@ -73,23 +75,41 @@ impl App {
 impl Widget for &App {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let title = Line::from("The r-ising model".bold());
-        let instructions = Line::from(vec![" Quit ".into(), "<Q> ".red().bold()]);
+        let instructions = Line::from(vec![
+            " Quit ".into(),
+            " <Q> ".red().bold(),
+            " Interactivity ".into(),
+            " <I> ".yellow().bold(),
+            " Temperature ".into(),
+            " <T> ".blue().bold(),
+        ]);
 
         let block = Block::bordered()
             .title(title.centered())
             .title_bottom(instructions.centered())
-            .border_set(border::THICK);
+            .border_set(border::THICK)
+            .border_type(BorderType::Rounded);
 
-        // let body = Text::from(vec![
-        //     Line::from(vec!["Test: ".into(), " True ".blue().bold().into()]),
-        //     Line::from(vec!["Tast: ".into(), " True ".red().bold().into()]),
-        // ]);
-
+        let mut lines = vec![];
         let lattice = self.lattice.clone().to_string();
-        let y_text: String = lattice[0].iter().flat_map(|x| x.chars()).collect();
-        let reduced_lattice: Text = Text::from(y_text.as_str());
-
-        Paragraph::new(reduced_lattice)
+        for y_text in lattice {
+            let mut x_row = vec![];
+            for x in y_text {
+                match x.as_str() {
+                    "-1" => {
+                        x_row.push(" . ".blue());
+                    }
+                    "1" => {
+                        x_row.push(" * ".red());
+                    }
+                    _ => {
+                        continue;
+                    }
+                }
+            }
+            lines.push(Line::from_iter(x_row));
+        }
+        Paragraph::new(lines)
             .centered()
             .block(block)
             .render(area, buf);
@@ -121,6 +141,18 @@ impl Lattice {
             interactivity,
             temperature,
         }
+    }
+
+    fn set_size(&mut self, size: usize) {
+        self.size = size
+    }
+
+    fn set_temperature(&mut self, temperature: f64) {
+        self.temperature = temperature
+    }
+
+    fn set_interactivity(&mut self, interactivity: f64) {
+        self.interactivity = interactivity
     }
 
     fn to_string(self) -> Vec<Vec<String>> {
