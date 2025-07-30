@@ -144,6 +144,10 @@ impl App {
     }
 
     fn decrease_temperature(&mut self) {
+        if self.lattice.temperature == 0.0 {
+            self.lattice.temperature = 0.0;
+            return;
+        }
         self.lattice.temperature = self.lattice.temperature - self.increment
     }
 
@@ -152,11 +156,11 @@ impl App {
     }
 
     fn decrease_delay(&mut self) {
-        if self.delay != Duration::from_millis(0) {
-            self.delay = self.delay - Duration::from_millis(10)
-        } else {
-            self.delay = Duration::from_millis(0)
+        if self.delay == Duration::from_millis(0) {
+            self.delay = Duration::from_millis(0);
+            return;
         }
+        self.delay = self.delay - Duration::from_millis(10)
     }
 }
 
