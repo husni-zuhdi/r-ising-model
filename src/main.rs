@@ -85,6 +85,34 @@ impl App {
         }
     }
 
+    // Render a lattice into Lines
+    fn render_lattice(&self) -> Vec<Line> {
+        let mut lattice_line = vec![];
+        let lattice = self.lattice.clone().to_string();
+
+        let up = " ^ ".fg(Color::Yellow).bg(Color::Red);
+        let down = " v ".fg(Color::Yellow).bg(Color::White);
+        for y_text in lattice {
+            let mut x_row = vec![];
+
+            for x in y_text {
+                match x.as_str() {
+                    "-1" => {
+                        x_row.push(down.clone());
+                    }
+                    "1" => {
+                        x_row.push(up.clone());
+                    }
+                    _ => {
+                        continue;
+                    }
+                }
+            }
+            lattice_line.push(Line::from_iter(x_row));
+        }
+        lattice_line
+    }
+
     // Run Metropolis Algorithm after delay second
     fn on_tick(&mut self) {
         let (x_rand, y_rand) = self.lattice.pick_random_point();
@@ -147,7 +175,7 @@ impl Widget for &App {
             format!(" = {:.2} K", temperature).blue().bold(),
             " Variable Increment".into(),
             format!(" = {:.2}", increment).red(),
-            " Delay Increment".into(),
+            " Delay ".into(),
             format!(" = {:.2} ms", delay).red(),
         ]);
 
@@ -158,26 +186,8 @@ impl Widget for &App {
             .border_set(border::THICK)
             .border_type(BorderType::Rounded);
 
-        let mut lines = vec![];
-        let lattice = self.lattice.clone().to_string();
-        for y_text in lattice {
-            let mut x_row = vec![];
-            for x in y_text {
-                match x.as_str() {
-                    "-1" => {
-                        x_row.push(" v ".fg(Color::Yellow).bg(Color::White));
-                    }
-                    "1" => {
-                        x_row.push(" ^ ".fg(Color::Yellow).bg(Color::Red));
-                    }
-                    _ => {
-                        continue;
-                    }
-                }
-            }
-            lines.push(Line::from_iter(x_row));
-        }
-        Paragraph::new(lines)
+        let lattice_line = self.render_lattice();
+        Paragraph::new(lattice_line)
             .centered()
             .block(block)
             .render(area, buf);
@@ -214,6 +224,7 @@ impl Lattice {
     }
 
     // convert 1 and 0 to String
+    // TODO: I don't think we need to do this. Can we cast int -> Line ?
     fn to_string(self) -> Vec<Vec<String>> {
         let mut lattice: Vec<Vec<String>> = Vec::new();
 
@@ -228,7 +239,7 @@ impl Lattice {
         lattice
     }
 
-    // pick randomg x and y point to be flipped
+    // pick randomg x and y point to be sampled
     fn pick_random_point(&self) -> (usize, usize) {
         (
             rand::random_range(0..self.size),
@@ -236,64 +247,63 @@ impl Lattice {
         )
     }
 
+    // Hamiltonian Formula
+    // H = -J * sum_over_nearest_neighbors(spin_i, spin_j)
+    // H = -J * current_spin * sum_of_all_neighbors
     fn calculate_hamiltonian(&self, x_rand: usize, y_rand: usize) -> f64 {
-        let random_spin = f64::from(self.value[y_rand][x_rand]);
-        // println!("Random Point at {}, {}: {}", x_rand, y_rand, random_spin);
+        let current_spin = f64::from(self.value[y_rand][x_rand]);
+        let (left, right, down, up) = self.find_neighbours(x_rand, y_rand);
 
-        let left = if x_rand != 0 {
-            self.value[y_rand][x_rand - 1]
-        } else {
-            self.value[y_rand][x_rand]
-        };
-        let right = if x_rand != self.size - 1 {
-            self.value[y_rand][x_rand + 1]
-        } else {
-            self.value[y_rand][x_rand]
-        };
-        let down = if y_rand != 0 {
-            self.value[y_rand - 1][x_rand]
-        } else {
-            self.value[y_rand][x_rand]
-        };
-        let up = if y_rand != self.size - 1 {
-            self.value[y_rand + 1][x_rand]
-        } else {
-            self.value[y_rand][x_rand]
-        };
-        // println!(
-        //     "Left: {}, Right: {}, Down: {}, Up: {}.",
-        //     left, right, up, down
-        // );
-        // Hamiltonian Formula
-        // H = -J * sum_over_nearest_neighbors(spin_i, spin_j)
-        // H = -J * current_spin * sum_of_all_neighbors
-        -1.0 * self.interactivity * random_spin * f64::from(left + right + down + up)
+        -1.0 * self.interactivity * current_spin * f64::from(left + right + down + up)
     }
 
+    // Gather nearest neighbours
+    fn find_neighbours(&self, x_rand: usize, y_rand: usize) -> (i32, i32, i32, i32) {
+        let current_spin = self.value[y_rand][x_rand];
+        let is_not_most_left = x_rand != 0;
+        let is_not_most_right = x_rand != self.size - 1;
+        let is_not_bottom = y_rand != 0;
+        let is_not_top = y_rand != self.size - 1;
+
+        let (mut left, mut right, mut down, mut up) =
+            (current_spin, current_spin, current_spin, current_spin);
+
+        if is_not_most_left {
+            left = self.value[y_rand][x_rand - 1]
+        };
+        if is_not_most_right {
+            right = self.value[y_rand][x_rand + 1]
+        };
+        if is_not_bottom {
+            down = self.value[y_rand - 1][x_rand]
+        };
+        if is_not_top {
+            up = self.value[y_rand + 1][x_rand]
+        };
+
+        (left, right, down, up)
+    }
+
+    // Delta_H = H_new - H_current
+    // Beta = 1 / ( k_B * T)
+    // If Delta_H < 0; take the new flip. It's mean the atom transition to a lower energy state
+    // If Delta_H > 0;
+    // If P(Delta_H) > e^(-Beta * Delta_H); take the new flip. It's mean the atom try to escape
+    // a local minima.
+    // Else keep the old spin
     fn metropolis_algo_calculation(&mut self, x_rand: usize, y_rand: usize) {
-        // Delta_H = H_new - H_current
-        // Beta = 1 / ( k_B * T)
-        // If Delta_H < 0; take the new flip. It's mean the atom transition to a lower energy state
-        // If Delta_H > 0;
-        // If P(Delta_H) > e^(-Beta * Delta_H); take the new flip. It's mean the atom try to escape
-        // a local minima.
-        // Else keep the old spin
         let current_hamiltonian_energy = self.calculate_hamiltonian(x_rand, y_rand);
-        let new_hamiltonian_energy = -1.0 * current_hamiltonian_energy;
-        // println!(
-        //     "New and Current H: {}, {}",
-        //     new_hamiltonian_energy, current_hamiltonian_energy
-        // );
+        let flipped_hamiltonian_energy = -1.0 * current_hamiltonian_energy;
 
-        let delta_h = new_hamiltonian_energy - current_hamiltonian_energy;
-        let acceptence_criteria = f64::consts::E.powf(delta_h * (-1.0 / KB * self.temperature));
-        // println!("Delta H: {}", delta_h);
-        // println!("A: {}", acceptence_criteria);
+        let delta_h = flipped_hamiltonian_energy - current_hamiltonian_energy;
+        let minus_beta = -1.0 / (KB * self.temperature);
+        let acceptence_criteria = f64::consts::E.powf(minus_beta * delta_h);
 
-        // Flip only in these two condition
-        if delta_h < 0.0 || acceptence_criteria > 0.5 {
+        // Flip only when delta H is lower than 0 and acceptence_criteria is higher than half
+        // Half represent the threshold to flip or not
+        let is_flipped = delta_h < 0.0 || acceptence_criteria > 0.5;
+        if is_flipped {
             self.value[y_rand][x_rand] = self.value[y_rand][x_rand] * -1;
-            // println!("FLIPPED!")
         }
     }
 }
