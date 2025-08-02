@@ -179,13 +179,17 @@ impl Widget for &App {
             format!(" = {:.2} K", temperature).blue().bold(),
             " Variable Increment".into(),
             format!(" = {:.2}", increment).red(),
-            " Delay ".into(),
-            format!(" = {:.2} ms", delay).red(),
         ]);
 
         let block = Block::bordered()
             .title(title.centered())
             .title(Line::from(" Quit <q/Q> ").red().bold().left_aligned())
+            .title(Line::from(" Delay ").gray().right_aligned())
+            .title(
+                Line::from(format!(" {:.2}ms ", delay))
+                    .red()
+                    .right_aligned(),
+            )
             .title_bottom(instructions.centered())
             .border_set(border::THICK)
             .border_type(BorderType::Rounded);
