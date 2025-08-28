@@ -1,0 +1,10 @@
+[package]
+name = "r-ising-terminal"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+crossterm = "0.29.0"
+rand = "0.9.1"
+ratatui = "0.29.0"
+internal = { path = "../internal", version = "0.1.0"}
