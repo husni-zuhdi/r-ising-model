@@ -1,0 +1,31 @@
+version: '3'
+# dotenv:
+#   - '.env'
+
+vars:
+  BINARY: '{{.BINARY| default "r-ising-terminal"}}'
+
+tasks:
+  lint:
+    summary: Run lint with clippy
+    cmds:
+      - cargo clippy
+  test:
+    summary: Run unit test with logs
+    cmds:
+      - RUST_LOG=debug cargo test -- --nocapture --test-threads=1
+  run:
+    summary: Run application with hot-reload
+    cmds:
+      - cargo watch -s 'cargo run --package {{.BINARY}} -- -release'
+  update-version:
+    summary: Update version manifest
+    cmds:
+      - |
+        cat <<EOF> version.json
+        {
+          "version": "$(cat internal/Cargo.toml| grep '^version' | awk -F '=' '{print $2}' | sed 's/[[:space:]|\"]//g')",
+          "build_date": "$(date +%F)",
+          "build_hash": "$(git rev-parse HEAD)"
+        }
+        EOF
