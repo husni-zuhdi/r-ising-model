@@ -4,5 +4,6 @@ resolver = "2"
 members = [
   "r-ising-terminal",
   "internal",
+  "r-ising-desktop",
 ]
 
