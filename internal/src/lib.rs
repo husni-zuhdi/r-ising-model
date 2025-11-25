@@ -61,7 +61,7 @@ impl Lattice {
         let current_spin = f64::from(self.value[y_rand][x_rand]);
         let (left, right, down, up) = self.find_neighbours(x_rand, y_rand);
 
-        -1.0 * self.interactivity * current_spin * f64::from(left + right + down + up)
+        -self.interactivity * current_spin * f64::from(left + right + down + up)
     }
 
     // Gather nearest neighbours
@@ -100,7 +100,7 @@ impl Lattice {
     // Else keep the old spin
     pub fn metropolis_algo_calculation(&mut self, x_rand: usize, y_rand: usize) {
         let current_hamiltonian_energy = self.calculate_hamiltonian(x_rand, y_rand);
-        let flipped_hamiltonian_energy = -1.0 * current_hamiltonian_energy;
+        let flipped_hamiltonian_energy = -current_hamiltonian_energy;
 
         let delta_h = flipped_hamiltonian_energy - current_hamiltonian_energy;
         let minus_beta = -1.0 / (KB * self.temperature);

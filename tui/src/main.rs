@@ -173,22 +173,18 @@ impl Widget for &App {
 
         let instructions = Line::from(vec![
             " Interactivity".into(),
-            format!(" = {:.2}", interactivity).yellow().bold(),
+            format!(" = {interactivity:.2}").yellow().bold(),
             " Temperature".into(),
-            format!(" = {:.2} K", temperature).blue().bold(),
+            format!(" = {temperature:.2} K").blue().bold(),
             " Variable Increment".into(),
-            format!(" = {:.2}", increment).red(),
+            format!(" = {increment:.2}").red(),
         ]);
 
         let block = Block::bordered()
             .title(title.centered())
             .title(Line::from(" Quit <q/Q> ").red().bold().left_aligned())
             .title(Line::from(" Delay ").gray().right_aligned())
-            .title(
-                Line::from(format!(" {:.2}ms ", delay))
-                    .red()
-                    .right_aligned(),
-            )
+            .title(Line::from(format!(" {delay:.2}ms ")).red().right_aligned())
             .title_bottom(instructions.centered())
             .border_set(border::THICK)
             .border_type(BorderType::Rounded);
