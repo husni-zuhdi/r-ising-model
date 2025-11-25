@@ -30,22 +30,6 @@ impl Lattice {
         }
     }
 
-    // convert 1 and 0 to String
-    // TODO: I don't think we need to do this. Can we cast int -> Line ?
-    pub fn convert_to_string(self) -> Vec<Vec<String>> {
-        let mut lattice: Vec<Vec<String>> = Vec::new();
-
-        for y in 0..self.size {
-            let mut y_vector: Vec<String> = Vec::new();
-            for x in 0..self.size {
-                y_vector.push(self.value[y][x].to_string());
-            }
-            lattice.push(y_vector);
-        }
-
-        lattice
-    }
-
     // pick randomg x and y point to be sampled
     pub fn pick_random_point(&self) -> (usize, usize) {
         (

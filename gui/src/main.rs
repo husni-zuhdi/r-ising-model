@@ -4,7 +4,10 @@ use std::time::Duration;
 
 fn main() -> eframe::Result {
     let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default().with_inner_size([320.0, 240.0]),
+        viewport: egui::ViewportBuilder::default()
+            .with_inner_size([640.0, 640.0])
+            .with_resizable(true),
+        centered: true,
         ..Default::default()
     };
     eframe::run_native(
@@ -36,20 +39,19 @@ impl eframe::App for App {
             ui.heading("R-Ising Model");
 
             egui::containers::Frame::canvas(ui.style()).show(ui, |ui| {
-                let lattice = self.lattice.clone().convert_to_string();
                 let up = egui::RichText::new(" ^ ").color(egui::Color32::RED);
                 let down = egui::RichText::new(" v ").color(egui::Color32::YELLOW);
 
                 ui.ctx()
                     .request_repaint_after(Duration::from_millis(self.delay as u64));
-                for y_text in &lattice {
+                for y_text in &self.lattice.value {
                     ui.horizontal(|ui| {
                         for x in y_text {
-                            match x.as_str() {
-                                "-1" => {
+                            match x {
+                                -1 => {
                                     ui.label(down.clone());
                                 }
-                                "1" => {
+                                1 => {
                                     ui.label(up.clone());
                                 }
                                 _ => continue,

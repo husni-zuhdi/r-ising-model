@@ -87,19 +87,18 @@ impl App {
     // Render a lattice into Lines
     fn render_lattice(&self) -> Vec<Line> {
         let mut lattice_line = vec![];
-        let lattice = self.lattice.clone().convert_to_string();
 
         let up = " ^ ".fg(Color::Yellow).bg(Color::Red);
         let down = " v ".fg(Color::Yellow).bg(Color::White);
-        for y_text in lattice {
+        for y_text in &self.lattice.value {
             let mut x_row = vec![];
 
             for x in y_text {
-                match x.as_str() {
-                    "-1" => {
+                match x {
+                    -1 => {
                         x_row.push(down.clone());
                     }
-                    "1" => {
+                    1 => {
                         x_row.push(up.clone());
                     }
                     _ => {
