@@ -2,7 +2,8 @@
 
 resolver = "2"
 members = [
-  "r-ising-terminal",
   "internal",
+  "tui",
+  "gui"
 ]
 

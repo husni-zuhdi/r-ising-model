@@ -87,19 +87,18 @@ impl App {
     // Render a lattice into Lines
     fn render_lattice(&self) -> Vec<Line> {
         let mut lattice_line = vec![];
-        let lattice = self.lattice.clone().convert_to_string();
 
         let up = " ^ ".fg(Color::Yellow).bg(Color::Red);
         let down = " v ".fg(Color::Yellow).bg(Color::White);
-        for y_text in lattice {
+        for y_text in &self.lattice.value {
             let mut x_row = vec![];
 
-            for x in y_text {
-                match x.as_str() {
-                    "-1" => {
+            for x in &y_text.value {
+                match x {
+                    -1 => {
                         x_row.push(down.clone());
                     }
-                    "1" => {
+                    1 => {
                         x_row.push(up.clone());
                     }
                     _ => {
@@ -173,22 +172,18 @@ impl Widget for &App {
 
         let instructions = Line::from(vec![
             " Interactivity".into(),
-            format!(" = {:.2}", interactivity).yellow().bold(),
+            format!(" = {interactivity:.2}").yellow().bold(),
             " Temperature".into(),
-            format!(" = {:.2} K", temperature).blue().bold(),
+            format!(" = {temperature:.2} K").blue().bold(),
             " Variable Increment".into(),
-            format!(" = {:.2}", increment).red(),
+            format!(" = {increment:.2}").red(),
         ]);
 
         let block = Block::bordered()
             .title(title.centered())
             .title(Line::from(" Quit <q/Q> ").red().bold().left_aligned())
             .title(Line::from(" Delay ").gray().right_aligned())
-            .title(
-                Line::from(format!(" {:.2}ms ", delay))
-                    .red()
-                    .right_aligned(),
-            )
+            .title(Line::from(format!(" {delay:.2}ms ")).red().right_aligned())
             .title_bottom(instructions.centered())
             .border_set(border::THICK)
             .border_type(BorderType::Rounded);
