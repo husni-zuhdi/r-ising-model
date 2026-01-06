@@ -47,6 +47,7 @@ impl Lattice {
         }
     }
 
+    /// Update Lattice when a new size configured
     pub fn update_lattice(&mut self) -> Self {
         // if diff == 0 return early
         if self.size == self.value.len() {
@@ -81,6 +82,10 @@ impl Lattice {
             }
         }
         self.clone()
+    }
+
+    pub fn reset_value(&self) -> Self {
+        Lattice::new(self.size, self.interactivity, self.temperature)
     }
 
     /// Set Lattice Size
@@ -147,6 +152,10 @@ impl Lattice {
     /// a local minima.
     /// Else keep the old spin
     pub fn metropolis_algo_calculation(&mut self, x_rand: usize, y_rand: usize) {
+        println!(
+            "Performing Metropolis Calculation on (x,y) ({},{}) with spin {}",
+            x_rand, y_rand, self.value[y_rand].value[x_rand]
+        );
         let current_hamiltonian_energy = self.calculate_hamiltonian(x_rand, y_rand);
         let flipped_hamiltonian_energy = -current_hamiltonian_energy;
 
@@ -158,6 +167,10 @@ impl Lattice {
         // Half represent the threshold to flip or not
         let is_flipped = delta_h < 0.0 || acceptence_criteria > 0.5;
         if is_flipped {
+            println!(
+                "Flipped (x,y) ({},{}) to {}",
+                x_rand, y_rand, -self.value[y_rand].value[x_rand]
+            );
             self.value[y_rand].value[x_rand] = -self.value[y_rand].value[x_rand];
         }
     }
