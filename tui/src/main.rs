@@ -93,7 +93,7 @@ impl App {
         for y_text in &self.lattice.value {
             let mut x_row = vec![];
 
-            for x in y_text {
+            for x in &y_text.value {
                 match x {
                     -1 => {
                         x_row.push(down.clone());

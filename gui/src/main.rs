@@ -26,7 +26,7 @@ struct App {
 impl Default for App {
     fn default() -> Self {
         Self {
-            lattice: Lattice::new(25, 1000.0, 1000.0),
+            lattice: Lattice::new(5, 1000.0, 1000.0),
             delay: 1000,
             is_paused: false,
         }
@@ -46,7 +46,7 @@ impl eframe::App for App {
                     .request_repaint_after(Duration::from_millis(self.delay as u64));
                 for y_text in &self.lattice.value {
                     ui.horizontal(|ui| {
-                        for x in y_text {
+                        for x in &y_text.value {
                             match x {
                                 -1 => {
                                     ui.label(down.clone());
@@ -65,18 +65,25 @@ impl eframe::App for App {
 
             ui.horizontal(|ui| {
                 if ui.button("+").clicked() {
-                    self.lattice.size += 1;
+                    println!("Add Lattice Size to {}", self.lattice.size + 1);
+                    self.lattice.set_size(self.lattice.size + 1);
+                    self.lattice.update_lattice();
                 }
                 if ui.button("-").clicked() {
-                    self.lattice.size -= 1;
+                    println!("Decrease Lattice Size to {}", self.lattice.size - 1);
+                    self.lattice.set_size(self.lattice.size - 1);
+                    self.lattice.update_lattice();
                 }
-                ui.add(egui::Slider::new(&mut self.lattice.size, 0..=1000).text("size"));
+                ui.label(format!("Lattice Size: {}", self.lattice.size));
+                //ui.add(egui::Slider::new(&mut self.lattice.size, 0..=1000).text("size"));
             });
             ui.horizontal(|ui| {
                 if ui.button("+").clicked() {
+                    println!("Add Temperature");
                     self.lattice.temperature += 1.0;
                 }
                 if ui.button("-").clicked() {
+                    println!("Decrease Temperature");
                     self.lattice.temperature -= 1.0;
                 }
                 ui.add(
