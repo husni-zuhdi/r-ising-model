@@ -75,7 +75,8 @@ impl eframe::App for App {
 
                 ui.horizontal(|ui| {
                     ui.label("Lattice Size");
-                    let response = ui.add(egui::DragValue::new(&mut self.lattice.size));
+                    let response =
+                        ui.add(egui::DragValue::new(&mut self.lattice.size).range(5.0..=25.0));
                     if response.changed() {
                         println!("Updating Lattice size to {}", self.lattice.size);
                         self.lattice.update_lattice();
