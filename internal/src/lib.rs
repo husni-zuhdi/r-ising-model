@@ -1,7 +1,7 @@
 use core::f64;
 const KB: f64 = 1.380649e-23; // Boltzmann Constant in J K^-1
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Spins {
     pub value: Vec<i32>,
 }
@@ -19,7 +19,7 @@ impl Spins {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Lattice {
     /// the 2d lattice
     pub value: Vec<Spins>,
