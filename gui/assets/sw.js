@@ -2,8 +2,8 @@ var cacheName = 'gui-pwa';
 var filesToCache = [
   './',
   './index.html',
-  './guie.js',
-  './gui.wasm',
+  './gui.js',
+  './gui_bg.wasm',
 ];
 
 /* Start the service worker and cache all of the app's content */
