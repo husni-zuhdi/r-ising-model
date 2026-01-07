@@ -1,141 +1,74 @@
-use eframe::egui;
-use internal::Lattice;
+use gui::App;
 
+// When compiling natively:
+#[cfg(not(target_arch = "wasm32"))]
 fn main() -> eframe::Result {
-    let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default()
+    env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
+
+    let native_options = eframe::NativeOptions {
+        viewport: eframe::egui::ViewportBuilder::default()
             .with_inner_size([640.0, 640.0])
-            .with_resizable(true),
-        centered: true,
+            .with_min_inner_size([300.0, 220.0])
+            .with_resizable(true)
+            .with_icon(
+                // NOTE: Adding an icon is optional
+                eframe::icon_data::from_png_bytes(
+                    &include_bytes!("../assets/favicon-32x32.png")[..],
+                )
+                .expect("Failed to load icon"),
+            ),
         ..Default::default()
     };
     eframe::run_native(
         "R-Ising Model",
-        options,
-        Box::new(|_| Ok(Box::<App>::default())),
+        native_options,
+        Box::new(|cc| Ok(Box::new(App::new(cc)))),
     )
 }
 
-struct App {
-    lattice: Lattice,
-    is_paused: bool,
-}
+// When compiling to web using trunk:
+#[cfg(target_arch = "wasm32")]
+fn main() {
+    use eframe::wasm_bindgen::JsCast as _;
 
-impl Default for App {
-    fn default() -> Self {
-        Self {
-            lattice: Lattice::new(15, 100.0, 100.0),
-            is_paused: true,
+    // Redirect `log` message to `console.log` and friends:
+    eframe::WebLogger::init(log::LevelFilter::Debug).ok();
+
+    let web_options = eframe::WebOptions::default();
+
+    wasm_bindgen_futures::spawn_local(async {
+        let document = web_sys::window()
+            .expect("No window")
+            .document()
+            .expect("No document");
+
+        let canvas = document
+            .get_element_by_id("the_canvas_id")
+            .expect("Failed to find the_canvas_id")
+            .dyn_into::<web_sys::HtmlCanvasElement>()
+            .expect("the_canvas_id was not a HtmlCanvasElement");
+
+        let start_result = eframe::WebRunner::new()
+            .start(
+                canvas,
+                web_options,
+                Box::new(|cc| Ok(Box::new(App::new(cc)))),
+            )
+            .await;
+
+        // Remove the loading text and spinner:
+        if let Some(loading_text) = document.get_element_by_id("loading_text") {
+            match start_result {
+                Ok(_) => {
+                    loading_text.remove();
+                }
+                Err(e) => {
+                    loading_text.set_inner_html(
+                        "<p> The app has crashed. See the developer console for details. </p>",
+                    );
+                    panic!("Failed to start eframe: {e:?}");
+                }
+            }
         }
-    }
-}
-
-impl eframe::App for App {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        egui::TopBottomPanel::top("top_panel")
-            .resizable(true)
-            .default_height(50.0)
-            .height_range(25.0..=75.0)
-            .show(ctx, |ui| {
-                ui.vertical_centered(|ui| {
-                    ui.heading("R-Ising Model");
-                    ui.label("Ising Model simulation built with Rust and egui.");
-                });
-            });
-
-        egui::SidePanel::left("left_panel")
-            .default_width(150.0)
-            .show(ctx, |ui| {
-                ui.horizontal(|ui| {
-                    if self.is_paused {
-                        if ui.button("Resume").clicked() {
-                            println!("Resumed");
-                            self.is_paused = false;
-                        }
-                    } else if ui.button("Pause").clicked() {
-                        println!("Paused");
-                        self.is_paused = true;
-                    }
-
-                    if ui.button("Reset").clicked() {
-                        println!("Reset");
-                        self.lattice = self.lattice.reset_value();
-                    }
-                });
-
-                ui.horizontal(|ui| {
-                    ui.label("Lattice Size");
-                    let response = ui.add(egui::DragValue::new(&mut self.lattice.size));
-                    if response.changed() {
-                        println!("Updating Lattice size to {}", self.lattice.size);
-                        self.lattice.update_lattice();
-                    }
-                });
-
-                ui.vertical(|ui| {
-                    ui.label("Temperature (K)");
-                    let response = ui.add(egui::Slider::new(
-                        &mut self.lattice.temperature,
-                        0.0..=10_000.0,
-                    ));
-                    if response.changed() {
-                        println!("Updating temperature (K) to {}", self.lattice.temperature);
-                    }
-                });
-
-                ui.vertical(|ui| {
-                    ui.label("Interactivity");
-                    let response = ui.add(egui::Slider::new(
-                        &mut self.lattice.interactivity,
-                        -10_000.0..=10_000.0,
-                    ));
-                    if response.changed() {
-                        println!(
-                            "Updating interactivity (K) to {}",
-                            self.lattice.interactivity
-                        );
-                    }
-                });
-            });
-
-        egui::CentralPanel::default().show(ctx, |ui| {
-            egui::containers::Frame::canvas(ui.style()).show(ui, |ui| {
-                let up = egui::RichText::new(" ^ ").color(egui::Color32::RED);
-                let down = egui::RichText::new(" v ").color(egui::Color32::YELLOW);
-
-                // Render lattice
-                for y_text in &self.lattice.value {
-                    ui.horizontal(|ui| {
-                        for x in &y_text.value {
-                            match x {
-                                -1 => {
-                                    ui.label(down.clone());
-                                }
-                                1 => {
-                                    ui.label(up.clone());
-                                }
-                                _ => continue,
-                            }
-                        }
-                    });
-                }
-
-                // Only re-calculate and repaint if resumed
-                if !self.is_paused {
-                    let (x_rand, y_rand) = self.lattice.pick_random_point();
-                    self.lattice.metropolis_algo_calculation(x_rand, y_rand);
-
-                    ui.ctx().request_repaint();
-                }
-            });
-        });
-
-        egui::TopBottomPanel::bottom("bottom_panel")
-            .resizable(true)
-            .default_height(50.0)
-            .height_range(25.0..=75.0)
-            .show(ctx, |ui| {
-                ui.label("Made by Husni smoll brain");
-            });
-    }
+    });
 }

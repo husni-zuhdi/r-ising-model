@@ -1,1 +1,10 @@
+# Rust compile target directories:
 /target
+/target_ra
+/target_wasm
+
+# trunk output folder
+**/dist
+
+# Mac stuff:
+**/.DS_Store
