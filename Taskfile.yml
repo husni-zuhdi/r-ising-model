@@ -27,9 +27,13 @@ tasks:
     cmds:
       - cargo watch -s 'cargo run --package {{.BINARY}} -- -release'
   run-wasm:
-    summary: Run wasm application with hot-reload
+    summary: Run wasm application
     cmds:
-      - cd gui && RUSTFLAGS='--cfg getrandom_backend="wasm_js"' trunk serve
+      - cd gui && RUSTFLAGS='--cfg getrandom_backend="wasm_js"' trunk serve --release --dist ../web/dist/
+  build-wasm:
+    summary: Build wasm distribution
+    cmds:
+      - cd gui && RUSTFLAGS='--cfg getrandom_backend="wasm_js"' trunk serve --release --dist ../web/dist/ --minify
   update-version:
     summary: Update version manifest
     cmds:
