@@ -21,6 +21,10 @@ pub struct Config {
     /// Type of environment.
     /// Default to `Release`. Can be `Development` or `Release`.
     pub environment: Environment,
+    /// Distributed Files Path
+    /// Filse to be served produced by `trunk`
+    /// Default to "./dist"
+    pub dist_path: String,
 }
 
 /// Environment Type
@@ -44,12 +48,14 @@ impl Default for Config {
         let svc_port: String = "8080".to_string();
         let log_level = tracing::Level::INFO;
         let environment = Environment::Release;
+        let dist_path = "./dist".to_string();
 
         Self {
             svc_endpoint,
             svc_port,
             log_level,
             environment,
+            dist_path,
         }
     }
 }
@@ -64,12 +70,14 @@ impl Config {
             .expect("failed to load SVC_PORT environment variable. Double check your config");
         let log_level = Self::parse_log_level();
         let environment = Self::parse_environment();
+        let dist_path = Self::parse_dist_path();
 
         Self {
             svc_endpoint,
             svc_port,
             log_level,
             environment,
+            dist_path,
         }
     }
     /// Parse Log Level
@@ -107,6 +115,18 @@ impl Config {
             },
         }
     }
+    /// Parse Dist Path
+    fn parse_dist_path() -> String {
+        match env::var("DIST_PATH") {
+            Err(e) => {
+                println!(
+                "Failed to load DIST_PATH environment variable. Set default to './dist'. Error {e}"
+            );
+                "./dist".to_string()
+            }
+            Ok(val) => val.to_string(),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -119,6 +139,7 @@ mod test {
         let svc_port = "8080";
         let log_level = tracing::Level::INFO;
         let environment = Environment::Release;
+        let dist_path = "./dist".to_string();
 
         let result = Config::default();
 
@@ -126,5 +147,6 @@ mod test {
         assert_eq!(result.svc_port, svc_port);
         assert_eq!(result.log_level, log_level);
         assert_eq!(result.environment, environment);
+        assert_eq!(result.dist_path, dist_path);
     }
 }
