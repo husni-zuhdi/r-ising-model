@@ -4,6 +4,7 @@ use tower::ServiceBuilder;
 use tower_http::compression::CompressionLayer;
 use tower_http::services::{ServeDir, ServeFile};
 use tracing::info;
+use web::config::Config;
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
@@ -12,20 +13,17 @@ async fn main() -> std::io::Result<()> {
 }
 
 /// Run the axum web application
-pub async fn app() {
+async fn app() {
     // Setup Config
-    //let config = Config::from_envar().await;
-    //let endpoint = format!("{}:{}", &config.svc_endpoint, &config.svc_port);
-    let endpoint = "0.0.0.0:8080";
+    let config = Config::from_envar().await;
+    let endpoint = format!("{}:{}", &config.svc_endpoint, &config.svc_port);
 
     // Initialize Tracing
     tracing_subscriber::fmt()
-        //.with_max_level(config.log_level)
-        .with_max_level(tracing::Level::DEBUG)
+        .with_max_level(config.log_level)
         .init();
 
     // Init app state
-    //let app_state = state_factory(config).await;
     info!("Starting HTTP Server at http://{}", endpoint);
     let app = main_route();
 
@@ -34,7 +32,8 @@ pub async fn app() {
     axum::serve(listener, app).await.unwrap();
 }
 
-pub fn main_route() -> Router {
+/// Build Axum router
+fn main_route() -> Router {
     Router::new()
         .nest_service("/assets", get_service(ServeDir::new("./dist/assets")))
         .nest_service(
