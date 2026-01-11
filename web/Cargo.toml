@@ -1,0 +1,13 @@
+[package]
+name = "web"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = { version = "0.8.0", features = ["macros"] }
+tokio = { version = "1.43", features = ["full"] }
+tracing = { version = "0.1", features = ["attributes"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tower = { version = "0.5", features = ["util"] }
+tower-http = { version = "0.6.0", features = ["fs", "trace", "compression-gzip", "timeout"] }
+internal = { path = "../internal", version = "0.1.0"}
