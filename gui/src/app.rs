@@ -22,11 +22,6 @@ impl App {
     /// Called new before egui render the frist frame
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         // Set to always use dark mode
-        //let style = eframe::egui::Style {
-        //    visuals: eframe::egui::Visuals::dark(),
-        //    ..Default::default()
-        //};
-        //cc.egui_ctx.set_style(style);
         cc.egui_ctx.set_theme(egui::Theme::Dark);
 
         // This is also where you can customize the look and feel of egui using
