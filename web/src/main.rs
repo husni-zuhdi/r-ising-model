@@ -1,8 +1,10 @@
-use axum::extract::MatchedPath;
+use axum::extract::{MatchedPath, State};
 use axum::http::{Request, StatusCode};
-use axum::routing::get_service;
+use axum::response::Html;
+use axum::routing::{get, get_service};
 use axum::Router;
 use axum::{body::Bytes, http::HeaderMap, response::Response};
+use std::fs;
 use std::time::Duration;
 use tokio::signal;
 use tower::ServiceBuilder;
@@ -14,6 +16,12 @@ use tracing::{info, info_span, Span};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use web::config::Config;
+
+// Application State
+#[derive(Clone)]
+struct AppState {
+    config: Config,
+}
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
@@ -42,13 +50,10 @@ async fn app() {
         )
         .with(tracing_subscriber::fmt::layer())
         .init();
-    //tracing_subscriber::fmt()
-    //    .with_max_level(config.log_level)
-    //    .init();
 
     // Init app state
     info!("Starting HTTP Server at http://{}", endpoint);
-    let app = main_route(config.dist_path);
+    let app = main_route(AppState { config });
 
     // Start Axum Application
     let listener = tokio::net::TcpListener::bind(endpoint).await.unwrap();
@@ -59,8 +64,10 @@ async fn app() {
 }
 
 /// Build Axum router
-fn main_route(dist_path: String) -> Router {
+fn main_route(app_state: AppState) -> Router {
+    let dist_path = app_state.config.dist_path.clone();
     Router::new()
+        .route("/", get(get_index))
         .nest_service(
             "/assets",
             get_service(ServeDir::new(format!("{dist_path}/assets"))),
@@ -132,7 +139,18 @@ fn main_route(dist_path: String) -> Router {
             // requests don't hang forever.
             TimeoutLayer::with_status_code(StatusCode::REQUEST_TIMEOUT, Duration::from_secs(10)),
         ))
-        .fallback_service(ServeFile::new(format!("{dist_path}/index.html")))
+        .with_state(app_state)
+        .fallback_service(get(get_not_found))
+}
+
+async fn get_index(State(app_state): State<AppState>) -> Html<String> {
+    let dist_path = format!("{}/index.html", app_state.config.dist_path);
+    let index = fs::read_to_string(&dist_path).unwrap_or("404 - Not Found".to_string());
+    Html(index)
+}
+
+async fn get_not_found() -> Html<String> {
+    Html("404 - Not Found".to_string())
 }
 
 // Handle shutdonw signal gracefully
