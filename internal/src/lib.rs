@@ -11,9 +11,9 @@ impl Spins {
     fn new(size: usize) -> Self {
         Self {
             value: (0..size)
-                .map(|_| rand::random_range(0..=1))
-                // Alter 0 to -1 (negative spin)
-                .map(|s| if s == 0 { -1 } else { 1 })
+                // Generate random spins
+                .map(|_| rand::random_bool(0.5))
+                .map(|up| if !up { -1 } else { 1 })
                 .collect(),
         }
     }
