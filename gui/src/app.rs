@@ -125,6 +125,8 @@ impl eframe::App for App {
 
         egui::CentralPanel::default().show(ctx, |ui| {
             egui::containers::Frame::canvas(ui.style()).show(ui, |ui| {
+                ui.label("Hover on a tile to see the detail");
+
                 // To create a 2D grid we need these data
                 // - Display size
                 // - Number of spins in a row
@@ -159,6 +161,27 @@ impl eframe::App for App {
                             Pos2::new(xp, yp),
                             Pos2::new(xp + tile_size, yp + tile_size),
                         );
+                        if ui.rect_contains_pointer(tile) {
+                            let h_energy = self.lattice.calculate_hamiltonian(x, y);
+                            let delta_h = self.lattice.calculate_delta_h(x, y);
+                            let acceptence_criteria =
+                                self.lattice.calculate_acceptence_criteria(delta_h);
+                            let is_flipped = delta_h < 0.0 || acceptence_criteria > 0.5;
+
+                            if self.lattice.value[y].value[x] == 1 {
+                                ui.label(
+                                    egui::RichText::new(format!("x: {x}, y: {y} Spin up (+)"))
+                                        .color(egui::Color32::DARK_RED),
+                                );
+                            } else {
+                                ui.label(
+                                    egui::RichText::new(format!("x: {x}, y: {y} Spin down (-)"))
+                                        .color(egui::Color32::LIGHT_BLUE),
+                                );
+                            }
+                            ui.label(format!("Hamiltonian Energy: {h_energy} | Diff: {delta_h}"));
+                            ui.label(format!("Acceptance Criteria: {acceptence_criteria} | Will be flipped? {is_flipped}"));
+                        }
                         let fil_color = if self.lattice.value[y].value[x] == 1 {
                             egui::Color32::DARK_RED
                         } else {

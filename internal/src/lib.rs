@@ -143,26 +143,43 @@ impl Lattice {
         (left, right, down, up)
     }
 
-    /// Delta_H = H_new - H_current
-    /// Beta = 1 / ( k_B * T)
+    /// Metropolis Algorith Calculation
     /// If Delta_H < 0; take the new flip. It's mean the atom transition to a lower energy state
     /// If Delta_H > 0;
-    /// If P(Delta_H) > e^(-Beta * Delta_H); take the new flip. It's mean the atom try to escape
+    /// If Acceptence Criteria > 0.5; take the new flip. It's mean the atom try to escape
     /// a local minima.
     /// Else keep the old spin
     pub fn metropolis_algo_calculation(&mut self, x_rand: usize, y_rand: usize) {
-        let current_hamiltonian_energy = self.calculate_hamiltonian(x_rand, y_rand);
-        let flipped_hamiltonian_energy = -current_hamiltonian_energy;
-
-        let delta_h = flipped_hamiltonian_energy - current_hamiltonian_energy;
-        let minus_beta = -1.0 / (KB * self.temperature);
-        let acceptence_criteria = f64::consts::E.powf(minus_beta * delta_h);
+        let delta_h = self.calculate_delta_h(x_rand, y_rand);
+        let acceptence_criteria = self.calculate_acceptence_criteria(delta_h);
 
         // Flip only when delta H is lower than 0 and acceptence_criteria is higher than half
         // Half represent the threshold to flip or not
         let is_flipped = delta_h < 0.0 || acceptence_criteria > 0.5;
         if is_flipped {
             self.value[y_rand].value[x_rand] = -self.value[y_rand].value[x_rand];
+        }
+    }
+
+    /// Calculate Hamiltonian energy difference of a point
+    /// Delta_H = H_new - H_current
+    pub fn calculate_delta_h(&mut self, x: usize, y: usize) -> f64 {
+        let current_hamiltonian_energy = self.calculate_hamiltonian(x, y);
+        let flipped_hamiltonian_energy = -current_hamiltonian_energy;
+        flipped_hamiltonian_energy - current_hamiltonian_energy
+    }
+
+    /// Beta = 1 / ( k_B * T)
+    /// Acceptence Criteria = e^(-Beta * Delta_H)
+    pub fn calculate_acceptence_criteria(&mut self, delta_h: f64) -> f64 {
+        let minus_beta = -1.0 / (KB * self.temperature);
+        let acceptence_criteria = f64::consts::E.powf(minus_beta * delta_h);
+        if acceptence_criteria == f64::NAN {
+            return 0.0;
+        }
+        match acceptence_criteria {
+            f64::INFINITY => 1.0,
+            res => res,
         }
     }
 }
