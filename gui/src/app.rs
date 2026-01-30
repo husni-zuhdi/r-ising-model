@@ -1,4 +1,4 @@
-use eframe::egui::{self, Pos2, Rect};
+use eframe::egui::{self, Id, Pos2, Rect, Sense};
 use internal::Lattice;
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
@@ -125,6 +125,8 @@ impl eframe::App for App {
 
         egui::CentralPanel::default().show(ctx, |ui| {
             egui::containers::Frame::canvas(ui.style()).show(ui, |ui| {
+                ui.label("Hover on a tile to see the detail");
+
                 // To create a 2D grid we need these data
                 // - Display size
                 // - Number of spins in a row
@@ -159,6 +161,20 @@ impl eframe::App for App {
                             Pos2::new(xp, yp),
                             Pos2::new(xp + tile_size, yp + tile_size),
                         );
+                        if ui.rect_contains_pointer(tile) {
+                            ui.label(format!("x: {x}, y: {y}"));
+                            if self.lattice.value[y].value[x] == 1 {
+                                ui.label(
+                                    egui::RichText::new("Spin up (+)")
+                                        .color(egui::Color32::DARK_RED),
+                                );
+                            } else {
+                                ui.label(
+                                    egui::RichText::new("Spin down (-)")
+                                        .color(egui::Color32::LIGHT_BLUE),
+                                );
+                            }
+                        }
                         let fil_color = if self.lattice.value[y].value[x] == 1 {
                             egui::Color32::DARK_RED
                         } else {
