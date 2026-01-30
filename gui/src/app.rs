@@ -162,18 +162,25 @@ impl eframe::App for App {
                             Pos2::new(xp + tile_size, yp + tile_size),
                         );
                         if ui.rect_contains_pointer(tile) {
-                            ui.label(format!("x: {x}, y: {y}"));
+                            let h_energy = self.lattice.calculate_hamiltonian(x, y);
+                            let delta_h = self.lattice.calculate_delta_h(x, y);
+                            let acceptence_criteria =
+                                self.lattice.calculate_acceptence_criteria(delta_h);
+                            let is_flipped = delta_h < 0.0 || acceptence_criteria > 0.5;
+
                             if self.lattice.value[y].value[x] == 1 {
                                 ui.label(
-                                    egui::RichText::new("Spin up (+)")
+                                    egui::RichText::new(format!("x: {x}, y: {y} Spin up (+)"))
                                         .color(egui::Color32::DARK_RED),
                                 );
                             } else {
                                 ui.label(
-                                    egui::RichText::new("Spin down (-)")
+                                    egui::RichText::new(format!("x: {x}, y: {y} Spin down (-)"))
                                         .color(egui::Color32::LIGHT_BLUE),
                                 );
                             }
+                            ui.label(format!("Hamiltonian Energy: {h_energy} | Diff: {delta_h}"));
+                            ui.label(format!("Acceptance Criteria: {acceptence_criteria} | Will be flipped? {is_flipped}"));
                         }
                         let fil_color = if self.lattice.value[y].value[x] == 1 {
                             egui::Color32::DARK_RED
