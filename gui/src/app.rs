@@ -1,4 +1,4 @@
-use eframe::egui;
+use eframe::egui::{self, Pos2, Rect};
 use internal::Lattice;
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
@@ -45,9 +45,12 @@ impl eframe::App for App {
 
     /// Called each time the UI needs repainting, which may be many times per second.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        let side_panel_width = 150.0;
+        let top_bottom_panel_height = 50.0;
+
         egui::TopBottomPanel::top("top_panel")
             .resizable(true)
-            .default_height(50.0)
+            .default_height(top_bottom_panel_height)
             .height_range(25.0..=75.0)
             .show(ctx, |ui| {
                 ui.vertical_centered(|ui| {
@@ -57,7 +60,7 @@ impl eframe::App for App {
             });
 
         egui::SidePanel::left("left_panel")
-            .default_width(150.0)
+            .default_width(side_panel_width)
             .show(ctx, |ui| {
                 ui.horizontal(|ui| {
                     if self.is_paused {
@@ -75,6 +78,7 @@ impl eframe::App for App {
                         self.lattice = self.lattice.reset_value();
                     }
                 });
+                ui.label("");
 
                 ui.horizontal(|ui| {
                     ui.label("Lattice Size");
@@ -110,28 +114,58 @@ impl eframe::App for App {
                         );
                     }
                 });
+
+                ui.vertical(|ui| {
+                    ui.label("");
+                    ui.label("Legends:");
+                    ui.label(egui::RichText::new("Spin up (+)").color(egui::Color32::DARK_RED));
+                    ui.label(egui::RichText::new("Spin down (-)").color(egui::Color32::LIGHT_BLUE));
+                });
             });
 
         egui::CentralPanel::default().show(ctx, |ui| {
             egui::containers::Frame::canvas(ui.style()).show(ui, |ui| {
-                let up = egui::RichText::new(" ^ ").color(egui::Color32::RED);
-                let down = egui::RichText::new(" v ").color(egui::Color32::YELLOW);
+                // To create a 2D grid we need these data
+                // - Display size
+                // - Number of spins in a row
+                let ui_size = ui.available_size();
+                let (tile_size, offset) = if ui_size.x > ui_size.y {
+                    (
+                        ui_size.y / (1.5 * self.lattice.size as f32),
+                        (ui_size.x - ui_size.y) / 2.,
+                    )
+                } else {
+                    (
+                        ui_size.x / (1.5 * self.lattice.size as f32),
+                        (ui_size.y - ui_size.x) / 2.,
+                    )
+                };
 
                 // Render lattice
-                for y_text in &self.lattice.value {
-                    ui.horizontal(|ui| {
-                        for x in &y_text.value {
-                            match x {
-                                -1 => {
-                                    ui.label(down.clone());
-                                }
-                                1 => {
-                                    ui.label(up.clone());
-                                }
-                                _ => continue,
-                            }
-                        }
-                    });
+                for x in 0..self.lattice.size {
+                    for y in 0..self.lattice.size {
+                        let (xp, yp) = if ui_size.x > ui_size.y {
+                            (
+                                x as f32 * tile_size + offset + 1.5 * side_panel_width,
+                                y as f32 * tile_size + top_bottom_panel_height,
+                            )
+                        } else {
+                            (
+                                x as f32 * tile_size + 1.5 * side_panel_width,
+                                y as f32 * tile_size + offset + top_bottom_panel_height,
+                            )
+                        };
+                        let tile = Rect::from_two_pos(
+                            Pos2::new(xp, yp),
+                            Pos2::new(xp + tile_size, yp + tile_size),
+                        );
+                        let fil_color = if self.lattice.value[y].value[x] == 1 {
+                            egui::Color32::DARK_RED
+                        } else {
+                            egui::Color32::LIGHT_BLUE
+                        };
+                        ui.painter().rect_filled(tile, 0.0, fil_color);
+                    }
                 }
 
                 // Only re-calculate and repaint if resumed
@@ -146,7 +180,7 @@ impl eframe::App for App {
 
         egui::TopBottomPanel::bottom("bottom_panel")
             .resizable(true)
-            .default_height(50.0)
+            .default_height(top_bottom_panel_height)
             .height_range(25.0..=75.0)
             .show(ctx, |ui| {
                 ui.label("Made by Husni smoll brain");
