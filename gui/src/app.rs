@@ -1,4 +1,4 @@
-use eframe::egui::{self, Id, Pos2, Rect, Sense};
+use eframe::egui::{self, Pos2, Rect};
 use internal::Lattice;
 
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
