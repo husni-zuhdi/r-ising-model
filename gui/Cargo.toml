@@ -6,12 +6,9 @@ authors = ["Husni Zuhdi <husninaufalz@gmail.com>"]
 
 [dependencies]
 eframe = { version = "0.33.0", default-features = false, features = [
-    "accesskit",     # Make egui compatible with screen readers. NOTE: adds a lot of dependencies.
     "default_fonts", # Embed the default egui fonts.
     "glow",          # Use the glow rendering backend. Alternative: "wgpu".
     "persistence",   # Enable restoring app state when restarting the app.
-    "wayland",       # To support Linux (and CI)
-    "x11",           # To support older Linux distributions (restores one of the default features)
 ] }
 log = "0.4.29"
 # You only need serde if you want app persistence:
@@ -37,3 +34,15 @@ opt-level = 2
 [target.wasm32-unknown-unknown.dependencies]
 getrandom_v2 = { version = "0.2", features = ["js"], package = "getrandom" }
 getrandom    = { version = "0.3", features = ["wasm_js"] }
+
+[package.metadata.bundle]
+name = "R-Ising"
+identifier = "com.husni-zuhdi.rising"
+icon = ["assets/favicon-32x32.png", "assets/favicon-32x32.png"]
+version = "0.1.0"
+resources = ["assets"]
+short_description = "Ising simulation built in Rust."
+long_description = """
+Ising simulation built in Rust.
+"""
+osx_url_schemes = ["com.husni-zuhdi.rising"]
