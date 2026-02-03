@@ -1,5 +1,5 @@
 use core::f64;
-const KB: f64 = 1.380649e-23; // Boltzmann Constant in J K^-1
+const KB: f64 = 1.380_649e-23; // Boltzmann Constant in J K^-1
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Spins {
@@ -13,7 +13,7 @@ impl Spins {
             value: (0..size)
                 // Generate random spins
                 .map(|_| rand::random_bool(0.5))
-                .map(|up| if !up { -1 } else { 1 })
+                .map(|up| if up { 1 } else { -1 })
                 .collect(),
         }
     }
@@ -33,11 +33,12 @@ pub struct Lattice {
 
 impl Lattice {
     /// Create a new Lattice with provided size, interactivity, and temperature
+    #[must_use]
     pub fn new(size: usize, interactivity: f64, temperature: f64) -> Self {
         let mut value: Vec<Spins> = Vec::new();
         for _ in 0..size {
             let spins = Spins::new(size);
-            value.push(spins)
+            value.push(spins);
         }
         Self {
             value,
@@ -48,57 +49,64 @@ impl Lattice {
     }
 
     /// Update Lattice when a new size configured
+    #[must_use]
     pub fn update_lattice(&mut self) -> Self {
-        // if diff == 0 return early
-        if self.size == self.value.len() {
-            return self.clone();
-        // if diff > 0
-        // add new values based on the difference
-        } else if self.size > self.value.len() {
-            let diff = self.size - self.value.len();
-            // Add new values to existing spins vector
-            for spins in &mut self.value {
-                let mut new_spins = Spins::new(diff);
-                spins.value.append(&mut new_spins.value);
+        match self.size.cmp(&self.value.len()) {
+            // if diff == 0 return early
+            std::cmp::Ordering::Equal => {
+                return self.clone();
             }
-            // Add new spins vector to lattice value
-            for _spins_id in 0..diff {
-                let new_spins_vector = Spins::new(self.size);
-                self.value.push(new_spins_vector);
-            }
-        // else if diff < 0
-        // decrease outer values based on the difference
-        } else {
-            let diff = self.value.len() - self.size;
-            // Delete the outer values in the spins
-            for spins in &mut self.value {
-                for _del_occ in 0..diff.abs_diff(0) {
-                    let _ = spins.value.pop().unwrap();
+            // if diff > 0
+            // add new values based on the difference
+            std::cmp::Ordering::Greater => {
+                let diff = self.size - self.value.len();
+                // Add new values to existing spins vector
+                for spins in &mut self.value {
+                    let mut new_spins = Spins::new(diff);
+                    spins.value.append(&mut new_spins.value);
+                }
+                // Add new spins vector to lattice value
+                for _spins_id in 0..diff {
+                    let new_spins_vector = Spins::new(self.size);
+                    self.value.push(new_spins_vector);
                 }
             }
-            // Delete the existing outer spins
-            for _spins_id in 0..diff {
-                self.value.pop();
+            // else if diff < 0
+            // decrease outer values based on the difference
+            std::cmp::Ordering::Less => {
+                let diff = self.value.len() - self.size;
+                // Delete the outer values in the spins
+                for spins in &mut self.value {
+                    for _del_occ in 0..diff.abs_diff(0) {
+                        #[expect(clippy::missing_panics_doc, reason = "infallible")]
+                        let _ = spins.value.pop().unwrap();
+                    }
+                }
+                // Delete the existing outer spins
+                for _spins_id in 0..diff {
+                    self.value.pop();
+                }
             }
         }
         self.clone()
     }
 
+    #[must_use]
     pub fn reset_value(&self) -> Self {
-        Lattice::new(self.size, self.interactivity, self.temperature)
+        Self::new(self.size, self.interactivity, self.temperature)
     }
 
     /// Set Lattice Size
+    #[must_use]
     pub fn set_size(&mut self, size: usize) -> Self {
         if size > 0 {
             self.size = size;
-            self.clone()
-        } else {
-            self.clone()
         }
+        self.clone()
     }
 
     /// pick randomg x and y point to be sampled
+    #[must_use]
     pub fn pick_random_point(&self) -> (usize, usize) {
         (
             rand::random_range(0..self.size),
@@ -107,8 +115,9 @@ impl Lattice {
     }
 
     /// Hamiltonian Formula
-    /// H = -J * sum_over_nearest_neighbors(spin_i, spin_j)
-    /// H = -J * current_spin * sum_of_all_neighbors
+    /// H = -J * `sum_over_nearest_neighbors`(`spin_i`, `spin_j`)
+    /// H = -J * `current_spin` * `sum_of_all_neighbors`
+    #[must_use]
     pub fn calculate_hamiltonian(&self, x_rand: usize, y_rand: usize) -> f64 {
         let current_spin = f64::from(self.value[y_rand].value[x_rand]);
         let (left, right, down, up) = self.find_neighbours(x_rand, y_rand);
@@ -117,6 +126,7 @@ impl Lattice {
     }
 
     /// Gather nearest neighbours
+    #[must_use]
     pub fn find_neighbours(&self, x_rand: usize, y_rand: usize) -> (i32, i32, i32, i32) {
         let current_spin = self.value[y_rand].value[x_rand];
         let is_not_most_left = x_rand != 0;
@@ -128,24 +138,24 @@ impl Lattice {
             (current_spin, current_spin, current_spin, current_spin);
 
         if is_not_most_left {
-            left = self.value[y_rand].value[x_rand - 1]
-        };
+            left = self.value[y_rand].value[x_rand - 1];
+        }
         if is_not_most_right {
-            right = self.value[y_rand].value[x_rand + 1]
-        };
+            right = self.value[y_rand].value[x_rand + 1];
+        }
         if is_not_bottom {
-            down = self.value[y_rand - 1].value[x_rand]
-        };
+            down = self.value[y_rand - 1].value[x_rand];
+        }
         if is_not_top {
-            up = self.value[y_rand + 1].value[x_rand]
-        };
+            up = self.value[y_rand + 1].value[x_rand];
+        }
 
         (left, right, down, up)
     }
 
     /// Metropolis Algorith Calculation
-    /// If Delta_H < 0; take the new flip. It's mean the atom transition to a lower energy state
-    /// If Delta_H > 0;
+    /// If `Delta_H` < 0; take the new flip. It's mean the atom transition to a lower energy state
+    /// If `Delta_H` > 0;
     /// If Acceptence Criteria > 0.5; take the new flip. It's mean the atom try to escape
     /// a local minima.
     /// Else keep the old spin
@@ -162,18 +172,18 @@ impl Lattice {
     }
 
     /// Calculate Hamiltonian energy difference of a point
-    /// Delta_H = H_new - H_current
+    /// `Delta_H` = `H_new` - `H_current`
     pub fn calculate_delta_h(&mut self, x: usize, y: usize) -> f64 {
         let current_hamiltonian_energy = self.calculate_hamiltonian(x, y);
         let flipped_hamiltonian_energy = -current_hamiltonian_energy;
         flipped_hamiltonian_energy - current_hamiltonian_energy
     }
 
-    /// Beta = 1 / ( k_B * T)
-    /// Acceptence Criteria = e^(-Beta * Delta_H)
+    /// Beta = 1 / ( `k_B` * T)
+    /// Acceptence Criteria = e^(-Beta * `Delta_H`)
     pub fn calculate_acceptence_criteria(&mut self, delta_h: f64) -> f64 {
         let minus_beta = -1.0 / (KB * self.temperature);
-        let acceptence_criteria = f64::consts::E.powf(minus_beta * delta_h);
+        let acceptence_criteria = (minus_beta * delta_h).exp();
         if acceptence_criteria == f64::NAN {
             return 0.0;
         }
