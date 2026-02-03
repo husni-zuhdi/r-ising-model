@@ -48,7 +48,14 @@ impl Lattice {
         }
     }
 
-    /// Update Lattice when a new size configured
+    /// # Update Lattice when a new size configured
+    /// If desire `size` is the same as the current `size`, nothing happen
+    /// If it's greater, append new spin on the current spin columns then append the spins
+    /// If it's lesser, delete the outer layer spin columns then pop the outer layer spins
+    ///
+    /// # Panics
+    ///
+    /// Will panic while `poping` the outer layer of spin columns if return `None`
     #[must_use]
     pub fn update_lattice(&mut self) -> Self {
         match self.size.cmp(&self.value.len()) {
@@ -78,7 +85,6 @@ impl Lattice {
                 // Delete the outer values in the spins
                 for spins in &mut self.value {
                     for _del_occ in 0..diff.abs_diff(0) {
-                        #[expect(clippy::missing_panics_doc, reason = "infallible")]
                         let _ = spins.value.pop().unwrap();
                     }
                 }
