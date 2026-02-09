@@ -39,13 +39,13 @@ impl App {
             // Start event pooling
             let timeout = self.delay.saturating_sub(last_tick.elapsed());
             if event::poll(timeout)? {
-                self.handle_events()?
+                self.handle_events()?;
             }
 
             // Update lattice after delay
             if last_tick.elapsed() >= self.delay {
                 self.on_tick();
-                last_tick = Instant::now()
+                last_tick = Instant::now();
             }
         }
         Ok(())
@@ -62,16 +62,16 @@ impl App {
             // it's important to check that the event is a key press event as
             // crossterm also emits key release and repeat events on Windows.
             Event::Key(key_event) if key_event.kind == KeyEventKind::Press => {
-                self.handle_key_event(key_event)
+                self.handle_key_event(key_event);
             }
             _ => {}
-        };
+        }
         Ok(())
     }
 
     fn handle_key_event(&mut self, key_event: KeyEvent) {
         match key_event.code {
-            KeyCode::Char('q') | KeyCode::Char('Q') => self.exit(),
+            KeyCode::Char('q' | 'Q') => self.exit(),
             KeyCode::Char('+') => self.increase_increment(),
             KeyCode::Char('-') => self.decrease_increment(),
             KeyCode::Char('i') => self.increase_interactivity(),
@@ -85,7 +85,7 @@ impl App {
     }
 
     // Render a lattice into Lines
-    fn render_lattice(&self) -> Vec<Line> {
+    fn render_lattice(&self) -> Vec<Line<'_>> {
         let mut lattice_line = vec![];
 
         let up = " ^ ".fg(Color::Yellow).bg(Color::Red);
@@ -93,17 +93,15 @@ impl App {
         for y_text in &self.lattice.value {
             let mut x_row = vec![];
 
-            for x in &y_text.value {
-                match x {
+            for spin in &y_text.value {
+                match spin {
                     -1 => {
                         x_row.push(down.clone());
                     }
                     1 => {
                         x_row.push(up.clone());
                     }
-                    _ => {
-                        continue;
-                    }
+                    _ => todo!(),
                 }
             }
             lattice_line.push(Line::from_iter(x_row));
@@ -117,28 +115,28 @@ impl App {
         self.lattice.metropolis_algo_calculation(x_rand, y_rand);
     }
 
-    fn exit(&mut self) {
+    const fn exit(&mut self) {
         self.exit = true;
     }
 
     fn increase_interactivity(&mut self) {
-        self.lattice.interactivity += self.increment
+        self.lattice.interactivity += self.increment;
     }
 
     fn increase_temperature(&mut self) {
-        self.lattice.temperature += self.increment
+        self.lattice.temperature += self.increment;
     }
 
     fn increase_increment(&mut self) {
-        self.increment += 10.0
+        self.increment += 10.0;
     }
 
     fn increase_delay(&mut self) {
-        self.delay += Duration::from_millis(10)
+        self.delay += Duration::from_millis(10);
     }
 
     fn decrease_interactivity(&mut self) {
-        self.lattice.interactivity -= self.increment
+        self.lattice.interactivity -= self.increment;
     }
 
     fn decrease_temperature(&mut self) {
@@ -146,11 +144,11 @@ impl App {
             self.lattice.temperature = 0.0;
             return;
         }
-        self.lattice.temperature -= self.increment
+        self.lattice.temperature -= self.increment;
     }
 
     fn decrease_increment(&mut self) {
-        self.increment -= 10.0
+        self.increment -= 10.0;
     }
 
     fn decrease_delay(&mut self) {
@@ -158,7 +156,7 @@ impl App {
             self.delay = Duration::from_millis(0);
             return;
         }
-        self.delay -= Duration::from_millis(10)
+        self.delay -= Duration::from_millis(10);
     }
 }
 

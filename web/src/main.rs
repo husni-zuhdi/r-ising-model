@@ -32,7 +32,7 @@ async fn main() -> std::io::Result<()> {
 /// Run the axum web application
 async fn app() {
     // Setup Config
-    let config = Config::from_envar().await;
+    let config = Config::from_envar();
     let endpoint = format!("{}:{}", &config.svc_endpoint, &config.svc_port);
 
     // Initialize tracing
@@ -116,11 +116,11 @@ fn main_route(app_state: AppState) -> Router {
                     // closures to attach a value to the initially empty field in the info_span
                     // created above.
                     span.record("method", tracing::field::display(request.method()));
-                    info!("started {} {}", request.method(), request.uri().path())
+                    info!("started {} {}", request.method(), request.uri().path());
                 })
                 .on_response(|response: &Response, latency: Duration, span: &Span| {
                     span.record("status_code", tracing::field::display(response.status()));
-                    info!("ended {} in {}ms", response.status(), latency.as_millis())
+                    info!("ended {} in {}ms", response.status(), latency.as_millis());
                 })
                 .on_body_chunk(|_chunk: &Bytes, _latency: Duration, _span: &Span| {
                     // ...
@@ -145,7 +145,7 @@ fn main_route(app_state: AppState) -> Router {
 
 async fn get_index(State(app_state): State<AppState>) -> Html<String> {
     let dist_path = format!("{}/index.html", app_state.config.dist_path);
-    let index = fs::read_to_string(&dist_path).unwrap_or("404 - Not Found".to_string());
+    let index = fs::read_to_string(&dist_path).unwrap_or_else(|_| "404 - Not Found".to_string());
     Html(index)
 }
 
@@ -173,7 +173,7 @@ async fn shutdown_signal() {
     let terminate = std::future::pending::<()>();
 
     tokio::select! {
-        _ = ctrl_c => {},
-        _ = terminate => {},
+        () = ctrl_c => {},
+        () = terminate => {},
     }
 }
