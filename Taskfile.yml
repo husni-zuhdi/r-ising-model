@@ -9,7 +9,7 @@ tasks:
   lint:
     summary: Run lint with clippy
     cmds:
-      - cargo clippy
+      - cargo clippy -- -D clippy::pedantic -D clippy::nursery
   test:
     summary: Run unit test with logs
     cmds:

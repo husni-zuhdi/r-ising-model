@@ -29,25 +29,14 @@ impl App {
 
         // Load previous app state (if any).
         // Note that you must enable the `persistence` feature for this to work.
-        if let Some(storage) = cc.storage {
+        cc.storage.map_or_else(Self::default, |storage| {
             eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default()
-        } else {
-            Default::default()
-        }
-    }
-}
-
-impl eframe::App for App {
-    /// Called by the framework to save state before shutdown.
-    fn save(&mut self, storage: &mut dyn eframe::Storage) {
-        eframe::set_value(storage, eframe::APP_KEY, self);
+        })
     }
 
-    /// Called each time the UI needs repainting, which may be many times per second.
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        let side_panel_width = 150.0;
-        let top_bottom_panel_height = 50.0;
-
+    /// Render top panel
+    #[allow(clippy::unused_self)]
+    fn render_top_panel(&self, ctx: &egui::Context, top_bottom_panel_height: f32) {
         egui::TopBottomPanel::top("top_panel")
             .resizable(true)
             .default_height(top_bottom_panel_height)
@@ -58,7 +47,10 @@ impl eframe::App for App {
                     ui.label("Ising Model simulation built with Rust and egui.");
                 });
             });
+    }
 
+    /// Render left panel
+    fn render_left_panel(&mut self, ctx: &egui::Context, side_panel_width: f32) {
         egui::SidePanel::left("left_panel")
             .default_width(side_panel_width)
             .show(ctx, |ui| {
@@ -86,7 +78,7 @@ impl eframe::App for App {
                         ui.add(egui::DragValue::new(&mut self.lattice.size).range(5.0..=25.0));
                     if response.changed() {
                         println!("Updating Lattice size to {}", self.lattice.size);
-                        self.lattice.update_lattice();
+                        let _ = self.lattice.update_lattice();
                     }
                 });
 
@@ -122,7 +114,16 @@ impl eframe::App for App {
                     ui.label(egui::RichText::new("Spin down (-)").color(egui::Color32::LIGHT_BLUE));
                 });
             });
+    }
 
+    /// Render central panel
+    #[allow(clippy::cast_precision_loss)]
+    fn render_central_panel(
+        &mut self,
+        ctx: &egui::Context,
+        top_bottom_panel_height: f32,
+        side_panel_width: f32,
+    ) {
         egui::CentralPanel::default().show(ctx, |ui| {
             egui::containers::Frame::canvas(ui.style()).show(ui, |ui| {
                 ui.label("Hover on a tile to see the detail");
@@ -148,13 +149,13 @@ impl eframe::App for App {
                     for y in 0..self.lattice.size {
                         let (xp, yp) = if ui_size.x > ui_size.y {
                             (
-                                x as f32 * tile_size + offset + 1.5 * side_panel_width,
-                                y as f32 * tile_size + top_bottom_panel_height,
+                                (x as f32).mul_add(tile_size, 1.5_f32.mul_add(side_panel_width, offset) ),
+                                (y as f32).mul_add(tile_size, top_bottom_panel_height),
                             )
                         } else {
                             (
-                                x as f32 * tile_size + 1.5 * side_panel_width,
-                                y as f32 * tile_size + offset + top_bottom_panel_height,
+                                (x as f32).mul_add(tile_size, 1.5) * side_panel_width,
+                                (y as f32).mul_add(tile_size, offset) + top_bottom_panel_height,
                             )
                         };
                         let tile = Rect::from_two_pos(
@@ -168,24 +169,31 @@ impl eframe::App for App {
                                 self.lattice.calculate_acceptence_criteria(delta_h);
                             let is_flipped = delta_h < 0.0 || acceptence_criteria > 0.5;
 
-                            if self.lattice.value[y].value[x] == 1 {
-                                ui.label(
-                                    egui::RichText::new(format!("x: {x}, y: {y} Spin up (+)"))
-                                        .color(egui::Color32::DARK_RED),
-                                );
-                            } else {
-                                ui.label(
-                                    egui::RichText::new(format!("x: {x}, y: {y} Spin down (-)"))
-                                        .color(egui::Color32::LIGHT_BLUE),
-                                );
+                            match self.lattice.value[y].value[x] {
+                                internal::Spin::Up => {
+                                    ui.label(
+                                        egui::RichText::new(format!("x: {x}, y: {y} Spin up (+)"))
+                                            .color(egui::Color32::DARK_RED),
+                                    );
+                                },
+                                internal::Spin::Down => {
+                                    ui.label(
+                                        egui::RichText::new(format!("x: {x}, y: {y} Spin down (-)"))
+                                            .color(egui::Color32::LIGHT_BLUE),
+                                    );
+                                }
                             }
+
                             ui.label(format!("Hamiltonian Energy: {h_energy} | Diff: {delta_h}"));
                             ui.label(format!("Acceptance Criteria: {acceptence_criteria} | Will be flipped? {is_flipped}"));
                         }
-                        let fil_color = if self.lattice.value[y].value[x] == 1 {
-                            egui::Color32::DARK_RED
-                        } else {
-                            egui::Color32::LIGHT_BLUE
+                        let fil_color = match self.lattice.value[y].value[x] {
+                            internal::Spin::Up => {
+                                egui::Color32::DARK_RED
+                            },
+                            internal::Spin::Down => {
+                                egui::Color32::LIGHT_BLUE
+                            }
                         };
                         ui.painter().rect_filled(tile, 0.0, fil_color);
                     }
@@ -200,7 +208,11 @@ impl eframe::App for App {
                 }
             });
         });
+    }
 
+    /// Render bottom panel
+    #[allow(clippy::unused_self)]
+    fn render_bottom_panel(&self, ctx: &egui::Context, top_bottom_panel_height: f32) {
         egui::TopBottomPanel::bottom("bottom_panel")
             .resizable(true)
             .default_height(top_bottom_panel_height)
@@ -208,5 +220,23 @@ impl eframe::App for App {
             .show(ctx, |ui| {
                 ui.label("Made by Husni smoll brain");
             });
+    }
+}
+
+impl eframe::App for App {
+    /// Called by the framework to save state before shutdown.
+    fn save(&mut self, storage: &mut dyn eframe::Storage) {
+        eframe::set_value(storage, eframe::APP_KEY, self);
+    }
+
+    /// Called each time the UI needs repainting, which may be many times per second.
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        let side_panel_width = 150.0;
+        let top_bottom_panel_height = 50.0;
+
+        self.render_top_panel(ctx, top_bottom_panel_height);
+        self.render_left_panel(ctx, side_panel_width);
+        self.render_central_panel(ctx, top_bottom_panel_height, side_panel_width);
+        self.render_bottom_panel(ctx, top_bottom_panel_height);
     }
 }

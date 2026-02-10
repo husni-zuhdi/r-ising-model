@@ -1,7 +1,7 @@
 use std::env;
 
 /// Struct Config for setup environment variables
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub struct Config {
     /// Service Endpoint
     /// Default to localhost.
@@ -28,7 +28,7 @@ pub struct Config {
 }
 
 /// Environment Type
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub enum Environment {
     Development,
     Release,
@@ -62,7 +62,11 @@ impl Default for Config {
 
 impl Config {
     /// Setup config from environment variables
-    pub async fn from_envar() -> Self {
+    ///
+    /// # Panics
+    /// Will panic if you do not have `SVC_ENDPOINT` and `SVC_PORT` envars
+    #[must_use]
+    pub fn from_envar() -> Self {
         // Required
         let svc_endpoint: String = env::var("SVC_ENDPOINT")
             .expect("Failed to load SVC_ENDPOINT environment variable. Double check your config");
@@ -92,7 +96,10 @@ impl Config {
             Ok(val) => match val.as_str() {
                 "release" | "Release" | "RELEASE" => Environment::Release,
                 "development" | "Development" | "DEVELOPMENT" => Environment::Development,
-                _ => Environment::Release,
+                _ => {
+                    println!("Defaulted to Release");
+                    Environment::Release
+                }
             },
         }
     }
@@ -111,7 +118,10 @@ impl Config {
                 "INFO" => tracing::Level::INFO,
                 "DEBUG" => tracing::Level::DEBUG,
                 "TRACE" => tracing::Level::TRACE,
-                _ => tracing::Level::INFO,
+                _ => {
+                    println!("Defaulted log level to INFO");
+                    tracing::Level::INFO
+                }
             },
         }
     }
@@ -124,7 +134,7 @@ impl Config {
             );
                 "./dist".to_string()
             }
-            Ok(val) => val.to_string(),
+            Ok(val) => val,
         }
     }
 }
