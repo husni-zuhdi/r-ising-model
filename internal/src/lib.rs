@@ -1,9 +1,37 @@
 use core::f64;
 const KB: f64 = 1.380_649e-23; // Boltzmann Constant in J K^-1
 
+#[derive(Clone, Copy, Debug, Default, serde::Serialize, serde::Deserialize)]
+pub enum Spin {
+    #[default]
+    Down,
+    Up,
+}
+
+impl Spin {
+    const fn as_usize(self) -> i8 {
+        match self {
+            Self::Up => 1,
+            Self::Down => -1,
+        }
+    }
+    const fn as_f64(self) -> f64 {
+        match self {
+            Self::Up => 1.0,
+            Self::Down => -1.0,
+        }
+    }
+    const fn flip(self) -> Self {
+        match self {
+            Self::Down => Self::Up,
+            Self::Up => Self::Down,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Spins {
-    pub value: Vec<i32>,
+    pub value: Vec<Spin>,
 }
 
 impl Spins {
@@ -13,9 +41,28 @@ impl Spins {
             value: (0..size)
                 // Generate random spins
                 .map(|_| rand::random_bool(0.5))
-                .map(|up| if up { 1 } else { -1 })
+                .map(|up| if up { Spin::Up } else { Spin::Down })
                 .collect(),
         }
+    }
+}
+
+pub struct NeighbourSpins {
+    up: Spin,
+    left: Spin,
+    right: Spin,
+    down: Spin,
+}
+
+impl NeighbourSpins {
+    /// Calculate sum of neighbour spins
+    fn sum(&self) -> f64 {
+        f64::from(
+            self.up.as_usize()
+                + self.right.as_usize()
+                + self.left.as_usize()
+                + self.down.as_usize(),
+        )
     }
 }
 
@@ -125,15 +172,15 @@ impl Lattice {
     /// H = -J * `current_spin` * `sum_of_all_neighbors`
     #[must_use]
     pub fn calculate_hamiltonian(&self, x_rand: usize, y_rand: usize) -> f64 {
-        let current_spin = f64::from(self.value[y_rand].value[x_rand]);
-        let (left, right, down, up) = self.find_neighbours(x_rand, y_rand);
+        let current_spin = self.value[y_rand].value[x_rand].as_f64();
+        let neighbour_spins = self.find_neighbours(x_rand, y_rand);
 
-        -self.interactivity * current_spin * f64::from(left + right + down + up)
+        -self.interactivity * current_spin * neighbour_spins.sum()
     }
 
     /// Gather nearest neighbours
     #[must_use]
-    pub fn find_neighbours(&self, x_rand: usize, y_rand: usize) -> (i32, i32, i32, i32) {
+    pub fn find_neighbours(&self, x_rand: usize, y_rand: usize) -> NeighbourSpins {
         let current_spin = self.value[y_rand].value[x_rand];
         let is_not_most_left = x_rand != 0;
         let is_not_most_right = x_rand != self.size - 1;
@@ -156,7 +203,12 @@ impl Lattice {
             up = self.value[y_rand + 1].value[x_rand];
         }
 
-        (left, right, down, up)
+        NeighbourSpins {
+            up,
+            left,
+            right,
+            down,
+        }
     }
 
     /// Metropolis Algorith Calculation
@@ -173,7 +225,7 @@ impl Lattice {
         // Half represent the threshold to flip or not
         let is_flipped = delta_h < 0.0 || acceptence_criteria > 0.5;
         if is_flipped {
-            self.value[y_rand].value[x_rand] = -self.value[y_rand].value[x_rand];
+            self.value[y_rand].value[x_rand] = self.value[y_rand].value[x_rand].flip();
         }
     }
 

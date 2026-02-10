@@ -95,13 +95,12 @@ impl App {
 
             for spin in &y_text.value {
                 match spin {
-                    -1 => {
+                    internal::Spin::Up => {
                         x_row.push(down.clone());
                     }
-                    1 => {
+                    internal::Spin::Down => {
                         x_row.push(up.clone());
                     }
-                    _ => todo!(),
                 }
             }
             lattice_line.push(Line::from_iter(x_row));

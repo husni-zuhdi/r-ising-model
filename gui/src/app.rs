@@ -169,24 +169,31 @@ impl App {
                                 self.lattice.calculate_acceptence_criteria(delta_h);
                             let is_flipped = delta_h < 0.0 || acceptence_criteria > 0.5;
 
-                            if self.lattice.value[y].value[x] == 1 {
-                                ui.label(
-                                    egui::RichText::new(format!("x: {x}, y: {y} Spin up (+)"))
-                                        .color(egui::Color32::DARK_RED),
-                                );
-                            } else {
-                                ui.label(
-                                    egui::RichText::new(format!("x: {x}, y: {y} Spin down (-)"))
-                                        .color(egui::Color32::LIGHT_BLUE),
-                                );
+                            match self.lattice.value[y].value[x] {
+                                internal::Spin::Up => {
+                                    ui.label(
+                                        egui::RichText::new(format!("x: {x}, y: {y} Spin up (+)"))
+                                            .color(egui::Color32::DARK_RED),
+                                    );
+                                },
+                                internal::Spin::Down => {
+                                    ui.label(
+                                        egui::RichText::new(format!("x: {x}, y: {y} Spin down (-)"))
+                                            .color(egui::Color32::LIGHT_BLUE),
+                                    );
+                                }
                             }
+
                             ui.label(format!("Hamiltonian Energy: {h_energy} | Diff: {delta_h}"));
                             ui.label(format!("Acceptance Criteria: {acceptence_criteria} | Will be flipped? {is_flipped}"));
                         }
-                        let fil_color = if self.lattice.value[y].value[x] == 1 {
-                            egui::Color32::DARK_RED
-                        } else {
-                            egui::Color32::LIGHT_BLUE
+                        let fil_color = match self.lattice.value[y].value[x] {
+                            internal::Spin::Up => {
+                                egui::Color32::DARK_RED
+                            },
+                            internal::Spin::Down => {
+                                egui::Color32::LIGHT_BLUE
+                            }
                         };
                         ui.painter().rect_filled(tile, 0.0, fil_color);
                     }
